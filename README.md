@@ -9,7 +9,7 @@
 - proot-distro login <其他distro>
 - 左側右滑+開新分頁
 - ps -eo pid,args | grep --color=auto proot
-- 根目錄：~/.udocker/containers/<name or id>/ROOT
+- 根目錄：~/.udocker/containers/name or id/ROOT
 
 ### 使用方式
 
@@ -45,7 +45,7 @@ bun udocker.js help
 - proot-distro login <other-distro>
 - new session by swiping right at the left side
 - ps -eo pid,args | grep --color=auto proot
-- RootFs: ~/.udocker/containers/<name or id>/ROOT
+- RootFs: ~/.udocker/containers/name or id/ROOT
 
 ### Usage
 
