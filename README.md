@@ -10,6 +10,7 @@
 - 左側右滑+開新分頁
 - ps -eo pid,args | grep --color=auto proot
 - 根目錄：~/.udocker/containers/name or id/ROOT
+- 請以 LD_PRELOAD= proot 開頭執行
 
 ### 使用方式
 
@@ -46,6 +47,7 @@ bun udocker.js help
 - new session by swiping right at the left side
 - ps -eo pid,args | grep --color=auto proot
 - RootFs: ~/.udocker/containers/name or id/ROOT
+- Please run with this prefix: LD_PRELOAD= proot
 
 ### Usage
 
