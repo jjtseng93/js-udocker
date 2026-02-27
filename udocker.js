@@ -272,11 +272,9 @@ async function main() {
       process.exitCode = 1;
       return;
     }
-    if (!localrepo.del_container_name(name)) {
-      Msg.err("Error: name does not exist");
-      process.exitCode = 1;
-      return;
-    }
+    
+    localrepo.del_container_name(name);
+
     if (!localrepo.set_container_name(containerId, newName)) {
       Msg.err("Error: setting new name");
       localrepo.set_container_name(containerId, name);
