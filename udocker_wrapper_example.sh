@@ -8,6 +8,10 @@ udroot="$HOME"/.udocker/containers
 export LD_PRELOAD="" 
 
 
+script_runproot="$PKG_RDIR"/proot/srpr
+script_runprootc="$PKG_RDIR"/proot/srprc
+
+
 ensure_dns() {
 
   if ! [ -s "$rootfs"/etc/resolv.conf ] ; then
@@ -53,8 +57,26 @@ if [ "$1" = "run" ] ; then
       else
         entrypoint_mode="clear"
       fi
+    elif printf "%s" "$1" | grep -q '\--bind=' ; then
+     if [ -z "$PROOT_EXTRA_BIND" ] ; then
+       export PROOT_EXTRA_BIND="$1"
+     else
+       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND $1"
+     fi
+    elif [ "$1" = "-v" ] ||
+         [ "$1" = "-b" ] ||
+         [ "$1" = "--volume" ] ; then
+     shift 1
+     if [ -z "$PROOT_EXTRA_BIND" ] ; then
+       export PROOT_EXTRA_BIND="--bind=$1"
+     else
+       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --bind=$1"
+     fi
     elif [ "$1" = "--rm" ] ; then
       JS_UDOCKER_REMOVE=1
+    elif [ "$1" = "--isolated" ] ; then
+      script_runproot=$(printf "%si" "$script_runproot")
+      script_runprootc=$(printf "%si" "$script_runprootc")
     elif [ "$1" = "--proot" ] ; then
       JS_UDOCKER_FORCE_PROOT=1
     fi
@@ -86,9 +108,9 @@ if [ "$1" = "run" ] ; then
 
     shift 1
     if [ -z "$1" ] ; then
-      exec sh "$PKG_RDIR"/proot/srpr "$rootfs"
+      exec sh "$script_runproot" "$rootfs"
     else
-      exec sh "$PKG_RDIR"/proot/srprc "$rootfs" "$@"
+      exec sh "$script_runprootc" "$rootfs" "$@"
     fi
     
   fi # end if has proot/$1 and yes
@@ -208,10 +230,12 @@ remove_container() {
 
   if [ -z "$args_list" ] ; then
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
-      exec sh "$PKG_RDIR"/proot/srpr "$rootfs"
+      exec sh "$script_runproot" "$rootfs"
     else
-      sh "$PKG_RDIR"/proot/srpr "$rootfs"
+      sh "$script_runproot" "$rootfs"
+      status=$?
       remove_container
+      exit $status
     fi
   else
     set --
@@ -223,10 +247,13 @@ $args_list
 EOF
 
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
-      exec sh "$PKG_RDIR"/proot/srprc "$rootfs" "$@"
+      exec sh "$script_runprootc" "$rootfs" "$@"
     else
-      sh "$PKG_RDIR"/proot/srprc "$rootfs" "$@"
+      sh "$script_runprootc" "$rootfs" "$@"
+
+      status=$?
       remove_container
+      exit $status
     fi
     
   fi
