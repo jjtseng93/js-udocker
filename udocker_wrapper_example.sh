@@ -147,16 +147,20 @@ proot_create_container() {
     proot_create_container
   fi
 
-  echo "Checking for /usr/bin/env: " 1>&2
+  echo "Checking /usr/bin/env /bin/sh: " 1>&2
   
-  if ! ls "$udroot/$cid/ROOT/usr/bin/env" 1>&2 &&
-     [ -z "$JS_UDOCKER_FORCE_PROOT" ] ; then
+  if ! ls "$udroot/$cid/ROOT/usr/bin/env" 1>&2 ||
+     ! ls "$udroot/$cid/ROOT/bin/sh" 1>&2 ; then
     
-    echo "*** Failed to create from $distro ***" 1>&2
+    if [ -z "$JS_UDOCKER_FORCE_PROOT" ] ; then
+    
+      echo "*** Failed to create from $distro ***" 1>&2
 
-    udocker rm "$cid"
+      udocker rm "$cid"
       
-    proot_create_container
+      proot_create_container
+      
+    fi
   fi
   
 
@@ -189,10 +193,12 @@ proot_create_container() {
 
     let entryp = [];
     let cmd = [];
+    let cfg = {};
+    
     if (jsonPath && fs.existsSync(jsonPath)) {
       try {
         const j = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
-        const cfg = j.config || {};
+        cfg = j.config || {};
         cmd = norm(cfg.Cmd);
         if (entryMode === "meta") {
           entryp = norm(cfg.Entrypoint);
@@ -217,8 +223,32 @@ proot_create_container() {
       finalArgs = cmd;
     }
 
+    if(cfg.Env)
+    {
+      finalArgs.unshift("/usr/bin/env",...cfg.Env);
+    }
+
+    if(cfg.WorkingDir)
+    {
+      fs.writeFileSync(jsonPath
+          .replace("container.json","WORKDIR"),
+       cfg.WorkingDir);
+    }
+
     process.stdout.write(finalArgs.join("\n"));
   ' "$udroot/$cid/container.json" "$entrypoint_mode" "$entrypoint_value" "$@")
+
+  wd=$(cat "$udroot/$cid/WORKDIR" 2>/dev/null)
+  rwd=$(printf "%s%s" "$rootfs" "$wd")
+
+  if ! [ -z "$wd" ] &&
+     [ -d "$rwd" ] ; then
+    if [ -z "PROOT_EXTRA_BIND" ] ; then
+      export PROOT_EXTRA_BIND="--cwd=$wd"
+    else
+      export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --cwd=$wd"
+    fi
+  fi
 
 
 remove_container() {

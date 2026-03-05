@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
 const { LocalRepository } = require("./lib/localrepo");
 const { DockerApi } = require("./lib/dockerapi");
 const { ContainerStructure } = require("./lib/container");
@@ -10,6 +11,7 @@ const { Msg } = require("./lib/msg");
 function usage() {
   Msg.out("Usage:");
   Msg.out("  udocker pull [--platform=os/arch[/variant]] [--registry=URL] [--pull=missing|always|never] [-q|--quiet] <repo/image:tag>");
+  Msg.out("  udocker build -t <container_name> [-f Dockerfile] [--build-arg KEY=VALUE] [-y|-n] [context]");
   Msg.out("  udocker create [--name=NAME] [--force] <repo/image:tag>");
   Msg.out("  udocker import <tar> <repo/image:tag>");
   Msg.out("  udocker import - <repo/image:tag>");
@@ -31,6 +33,8 @@ function usage() {
   Msg.out("Commands:");
   Msg.out("  pull      Download image layers and metadata");
   Msg.out("            Options: --platform, --registry, --index, --pull, -q, --quiet");
+  Msg.out("  build     Build container from Dockerfile");
+  Msg.out("            Options: -t, --tag, -f, --file, --build-arg, -y, -n");
   Msg.out("  import    Import tar file (docker export) into an image");
   Msg.out("  export    Export container directory tree to tar");
   Msg.out("  load      Load image from file or stdin (docker save format)");
@@ -50,6 +54,8 @@ function usage() {
   Msg.out("Examples:");
   Msg.out("  udocker pull alpine");
   Msg.out("  udocker pull --platform=linux/arm64 alpine:latest");
+  Msg.out("  udocker build -t my_container .");
+  Msg.out("  udocker build -t my_container -f Dockerfile .");
   Msg.out("  udocker create --name=myap alpine");
   Msg.out("  udocker images -p");
   Msg.out("  udocker ps");
@@ -61,6 +67,17 @@ function usage() {
 function parseArgs(argv) {
   const opts = {};
   const positional = [];
+  const appendOpt = (k, v) => {
+    if (k === "build-arg") {
+      if (opts[k] === undefined) {
+        opts[k] = [v];
+      } else {
+        opts[k].push(v);
+      }
+      return;
+    }
+    opts[k] = v;
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "-") {
@@ -72,24 +89,24 @@ function parseArgs(argv) {
       if (eqIdx !== -1) {
         const k = arg.slice(2, eqIdx);
         const v = arg.slice(eqIdx + 1);
-        opts[k] = v;
+        appendOpt(k, v);
       } else {
         const k = arg.slice(2);
         const next = argv[i + 1];
         if (next && !next.startsWith("-")) {
-          opts[k] = next;
+          appendOpt(k, next);
           i += 1;
         } else {
-          opts[k] = true;
+          appendOpt(k, true);
         }
       }
     } else if (arg.startsWith("-")) {
       const short = arg.slice(1);
-      if ((short === "o" || short === "i") && argv[i + 1] && !argv[i + 1].startsWith("-")) {
-        opts[short] = argv[i + 1];
+      if ((short === "o" || short === "i" || short === "t" || short === "f") && argv[i + 1] && !argv[i + 1].startsWith("-")) {
+        appendOpt(short, argv[i + 1]);
         i += 1;
       } else {
-        opts[short] = true;
+        appendOpt(short, true);
       }
     } else {
       positional.push(arg);
@@ -175,6 +192,85 @@ async function main() {
       Msg.err("Error: no files downloaded");
       process.exitCode = 1;
       return;
+    }
+    process.exitCode = 0;
+    return;
+  }
+
+  if (cmd === "build") {
+    const imageTag = opts.t || opts.tag||"null";
+    if (!imageTag || imageTag === true) {
+      Msg.err("Error: build requires -t/--tag <container_name>");
+      process.exitCode = 1;
+      return;
+    }
+
+    /*
+    const [imagerepo, tag] = checkImageSpec(dockerApi, String(imageTag));
+    if (!imagerepo) {
+      Msg.err("Error: invalid --tag image:tag");
+      process.exitCode = 1;
+      return;
+    }
+    */
+    
+    const contextDir = path.resolve(String(positional[0] || "."));
+    if (!fs.existsSync(contextDir) || !fs.statSync(contextDir).isDirectory()) {
+      Msg.err("Error: build context is not a directory");
+      process.exitCode = 1;
+      return;
+    }
+    let dockerfile = opts.f || opts.file || "Dockerfile";
+    if (dockerfile === true) {
+      Msg.err("Error: must specify Dockerfile path for -f/--file");
+      process.exitCode = 1;
+      return;
+    }
+    dockerfile = String(dockerfile);
+    const dockerfilePath = path.isAbsolute(dockerfile) ? dockerfile : path.join(contextDir, dockerfile);
+    if (!fs.existsSync(dockerfilePath)) {
+      Msg.err(`Error: Dockerfile not found: ${dockerfilePath}`);
+      process.exitCode = 1;
+      return;
+    }
+    const buildArgValues = Array.isArray(opts["build-arg"]) ? opts["build-arg"] : [];
+    const buildArgs = [];
+    for (const val of buildArgValues) {
+      if (val === true || !String(val).includes("=")) {
+        Msg.err("Error: --build-arg must be KEY=VALUE");
+        process.exitCode = 1;
+        return;
+      }
+      buildArgs.push(String(val));
+    }
+    const mode = opts.n ? "n" : (opts.y ? "y" : "i");
+    const modPath = pathToFileURL(path.join(__dirname, "lib", "build.mjs")).href;
+    const buildMod = await import(modPath);
+    const oldCwd = process.cwd();
+    process.chdir(contextDir);
+    try {
+      if (typeof buildMod.buildDockerfile === "function") {
+        await buildMod.buildDockerfile({
+          tag: `${imageTag}`,
+          mode,
+          filepath: dockerfilePath,
+          buildArgs,
+        });
+      } else {
+        if (typeof buildMod.initBuild === "function") {
+          buildMod.initBuild({
+            tag: `${imageTag}`,
+            mode,
+            buildArgs,
+          });
+        }
+        await buildMod.parseDockerfile(dockerfilePath);
+      }
+    } finally {
+      if (typeof buildMod.closeBuildSession === "function") {
+        buildMod.closeBuildSession();
+      }
+      process.chdir(oldCwd);
     }
     process.exitCode = 0;
     return;
