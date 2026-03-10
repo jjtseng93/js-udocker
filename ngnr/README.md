@@ -1,6 +1,12 @@
 # Original sample from:
 - https://github.com/docker/awesome-compose/tree/master/nginx-nodejs-redis
 
+# Note
+- This compose example requires a modified version of proot to work properly in Termux to do port mapping correctly
+- You can compile it yourself at
+- https://github.com/termux/proot/issues/339
+- or else you'll have to manually modify the default port numbers
+
 ## Compose sample application
 
 ## Node.js app with Nginx proxy and Redis database
