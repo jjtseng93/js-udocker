@@ -4,6 +4,7 @@
 - 2026/03/11 Added udocker compose
   * experimental for now, only supports simple files
 - udocker run / compose by udocker_wrapper.sh
+- Termux install/uninstall script
 - .
 - 2026/03/05 Added udocker build 
 - specifically for openclaw/Dockerfile
@@ -32,7 +33,8 @@ bun udocker.js load -i image.tar
 bun udocker.js inspect myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
-bun udocker.js build -t <container_name> [-f file] .
+bun udocker.js build -t <container_name> [-y | -i] [-f file] .
+bun udocker.js compose [-f compose_file] [-y | -i]
 bun udocker.js ps
 bun udocker.js rm <container-id|name>
 bun udocker.js rmi <repo/image:tag>
@@ -55,7 +57,8 @@ bun udocker.js help
 - `verify <repo/image:tag>`：驗證 image
 - `manifest inspect <repo/image:tag>`：顯示 manifest
 - `create [--name=NAME] <repo/image:tag>`：由 image 建立 container
-- `build -t <name> <context>`：從Dockerfile建立單層容器
+- `build -t <name> [-y | -i] <context>`：從Dockerfile建立單層容器，-y是同意建立容器的所有過程，-i會每次詢問(預設值)
+- `compose [-f 檔名] [-y | -i]`：一次建立許多容器並且跑起來，-y是同意建立容器的所有過程，-i會每次詢問(預設值)
 - `ps`：列出 container
 - `rm <container-id|name>`：刪除 container
 - `rmi <repo/image:tag>`：刪除 image
@@ -87,7 +90,8 @@ bun udocker.js load -i image.tar
 bun udocker.js inspect myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
-bun udocker.js build -t <container_name> [-f file] .
+bun udocker.js build -t <container_name> [-y | -i] [-f file] .
+bun udocker.js compose [-f compose_file] [-y | -i]
 bun udocker.js ps
 bun udocker.js rm <container-id|name>
 bun udocker.js rmi <repo/image:tag>
@@ -110,7 +114,8 @@ bun udocker.js help
 - `verify <repo/image:tag>`: verify image
 - `manifest inspect <repo/image:tag>`: print manifest metadata
 - `create [--name=NAME] <repo/image:tag>`: create a container from an image
-- `build -t <name> <context>`: create single-layered container from Dockerfile
+- `build -t <name> [-y | -i] <context>`: create single-layered container from Dockerfile, -y will agree with all the building process while -i prompts every time interactively(default)
+- `compose [-f file] [-y | -i]`: Create several containers at a time and run them, -y will agree with all the building process while -i prompts every time interactively(default)
 - `ps`: list containers
 - `rm <container-id|name>`: delete a container
 - `rmi <repo/image:tag>`: delete an image
