@@ -1,0 +1,60 @@
+#!/bin/sh
+
+sd=$(dirname "$(realpath "$0")")
+
+
+if [ -d /data/data/com.termux ] ; then
+  shr=/system/bin/linker64
+  PKG_PDIR=$HOME
+  PKG_RDIR=$PREFIX
+  pr1=/system/bin/env
+  pr2=$(which proot)
+  bind_sh=/odm
+  bind_toybox=/odm
+else
+  export PROOT_LOADER=$PKG_PDIR/applib/libproot-loader.so
+  pr1=sh
+  pr2=proot
+  bind_sh="$PKG_RDIR/bin/mksh":/system/bin/sh
+  bind_toybox="$PKG_RDIR/bin/toybox":/system/bin/toybox
+fi
+
+
+if [ -d "$1" ] ; then
+  rootfs="$1"
+elif [ -d "$sd/alpine" ] ; then
+  rootfs="$sd/alpine"
+elif [ -d "$sd/debian" ] ; then
+  rootfs="$sd/debian"
+else
+  echo "No rootfs specified or found"
+  exit 1
+fi
+
+
+[ -z "$guestlang" ] && guestlang="zh_TW.UTF-8"
+[ -z "$guestlanguage" ] && guestlanguage="zh_TW:zh:en_US:en"
+[ -z "$defaultshell" ] &&  defaultshell="/bin/sh"
+
+
+export PROOT_TMP_DIR=$TMPDIR
+export LD_PRELOAD="" 
+
+
+if [ -d /tmp ] ; then
+  atmp=/tmp
+else
+  atmp=/data/local/tmp
+fi
+
+
+if [ -z "$PROOT_EXTRA_BIND" ] ; then
+extbind="--bind=/odm"
+else
+extbind="--bind=/odm $PROOT_EXTRA_BIND"
+fi
+
+shift 1
+# the 2 -L and -l are patches
+# -p for protecting low ports
+"$pr1" "$shr" "$pr2" --rootfs="$rootfs" -p -l -L --sysvipc --kill-on-exit --cwd=/root --change-id=0:0 --bind=/linkerconfig/com.android.art/ld.config.txt --bind=/linkerconfig/ld.config.txt --bind=/vendor --bind=/system_ext --bind=/system --bind=/product $extbind --bind=/apex --bind=/data/misc/apexdata/com.android.art/dalvik-cache --bind=/data/dalvik-cache --bind=/data/app --bind="$rootfs"/tmp:/dev/shm --bind=/proc --bind=/proc/self/fd/2:/dev/stderr --bind=/proc/self/fd/1:/dev/stdout --bind=/proc/self/fd/0:/dev/stdin --bind=/sys --bind=/proc/self/fd:/dev/fd --bind=/dev/urandom:/dev/random --bind=/dev --kernel-release=5.1.107-70-PRoot /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games ANDROID_ART_ROOT=/apex/com.android.art ANDROID_DATA=/data ANDROID_I18N_ROOT=/apex/com.android.i18n ANDROID_ROOT=/system ANDROID_TZDATA_ROOT=/apex/com.android.tzdata EXTERNAL_STORAGE=/sdcard SHELL="$defaultshell" LANG="$guestlang" LANGUAGE="$guestlanguage" LC_ALL="$guestlang" MOZ_FAKE_NO_SANDBOX=1 DISPLAY=:0 PULSE_SERVER=127.0.0.1 TERM=xterm-256color TMPDIR=/tmp COLORTERM=truecolor HOME=/root USER=root "$@"

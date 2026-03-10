@@ -1,15 +1,24 @@
 #!/bin/sh
 
-alias udocker='sh "$shr" node "$PKG_RDIR"/js-udocker/udocker.js'
-alias proot-udocker='sh "$shr" proot -l -S / --bind="$PKG_RDIR/bin/mksh":/system/bin/sh --bind="$PKG_RDIR/bin/toybox":/system/bin/toybox /bin/sh "$shr" node "$PKG_RDIR"/js-udocker/udocker.js'
+sd=$(dirname "$(realpath "$0")")
+
+
+if [ -d /data/data/com.termux ] ; then
+  alias udocker='node "$sd"/udocker.js'
+  alias proot-udocker='proot -l -S / node "$sd"/udocker.js'
+else
+  alias udocker='sh "$shr" node "$sd"/udocker.js'
+  alias proot-udocker='sh "$shr" proot -l -S / --bind="$PKG_RDIR/bin/mksh":/system/bin/sh --bind="$PKG_RDIR/bin/toybox":/system/bin/toybox /bin/sh "$shr" node "$sd"/udocker.js'
+fi
+
 
 udroot="$HOME"/.udocker/containers
 
-export LD_PRELOAD="" 
 
 
-script_runproot="$PKG_RDIR"/proot/srpr
-script_runprootc="$PKG_RDIR"/proot/srprc
+
+script_runproot=$sd/scripts/srpr
+script_runprootc=$sd/scripts/srprc
 
 
 ensure_dns() {
@@ -33,6 +42,7 @@ ensure_non_primary_user() {
 
 
 if [ "$1" = "run" ] ; then
+  #export LD_PRELOAD= 
   shift 1
 
   entrypoint_mode="meta"
@@ -67,13 +77,43 @@ if [ "$1" = "run" ] ; then
          [ "$1" = "-b" ] ||
          [ "$1" = "--volume" ] ; then
      shift 1
-     if [ -z "$PROOT_EXTRA_BIND" ] ; then
-       export PROOT_EXTRA_BIND="--bind=$1"
+
+     if echo "$1" | grep -qoE '^[^/]+:' ; then
+       vname=$(echo "$1" | grep -oE '^[^:]+')
+       vsuffix=$(echo "$1" | grep -oE ':.+$')
+
+       realb=$HOME/.udocker/volumes/$vname
+
+       mkdir -p "$realb" 2>/dev/null
+
+       realb=$(printf "%s%s" "$realb" "$vsuffix")
      else
-       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --bind=$1"
+       realb=$1
+     fi
+     
+     if [ -z "$PROOT_EXTRA_BIND" ] ; then
+       export PROOT_EXTRA_BIND="--bind=$realb"
+     else
+       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --bind=$realb"
      fi
     elif [ "$1" = "--rm" ] ; then
       JS_UDOCKER_REMOVE=1
+    elif [ "$1" = "-p" ] ; then
+      shift 1
+
+      hostp=$(echo "$1" | grep -oE '^[^:]+')
+      contp=$(echo "$1" | grep -oE '[^:]+$')
+
+      portdiff=$((hostp-contp))
+
+      if [ "$portdiff" -gt 1000 ] ; then
+        export PROOT_PORT_ADD=$portdiff
+      fi
+      
+    elif [ "$1" = "-w" ] ||
+         [ "$1" = "--workdir" ] ; then
+      shift 1
+      wd=$1
     elif [ "$1" = "--isolated" ] ; then
       script_runproot=$(printf "%si" "$script_runproot")
       script_runprootc=$(printf "%si" "$script_runprootc")
@@ -133,9 +173,16 @@ proot_create_container() {
   echo "  Using proot, may be slow..." 1>&2
 
   if [ -z "$cname" ] ; then
+    ldsave=$LD_PRELOAD
+    LD_PRELOAD=
     cid=$(proot-udocker create "$distro")
+    LD_PRELOAD=$ldsave
   else
+    ldsave=$LD_PRELOAD
+    LD_PRELOAD=
     proot-udocker create --name="$cname" "$distro"
+    LD_PRELOAD=$ldsave
+    
     cid=$cname
   fi
 }
@@ -151,7 +198,7 @@ proot_create_container() {
   
   if ! ls "$udroot/$cid/ROOT/usr/bin/env" 1>&2 ||
      ! ls "$udroot/$cid/ROOT/bin/sh" 1>&2 ; then
-    
+    echo "$udroot/$cid/ROOT/usr/bin/env" && exit
     if [ -z "$JS_UDOCKER_FORCE_PROOT" ] ; then
     
       echo "*** Failed to create from $distro ***" 1>&2
@@ -175,7 +222,7 @@ proot_create_container() {
 
   # $1 is container name/id or distro name
   shift 1
-  args_list=$(sh "$shr" node -e '
+  args_list=$(node -e '
     const fs = require("fs");
     const jsonPath = process.argv[1];
     const entryMode = process.argv[2];
@@ -238,7 +285,9 @@ proot_create_container() {
     process.stdout.write(finalArgs.join("\n"));
   ' "$udroot/$cid/container.json" "$entrypoint_mode" "$entrypoint_value" "$@")
 
-  wd=$(cat "$udroot/$cid/WORKDIR" 2>/dev/null)
+  if [ -z "$wd" ] ; then
+    wd=$(cat "$udroot/$cid/WORKDIR" 2>/dev/null)
+  fi
   rwd=$(printf "%s%s" "$rootfs" "$wd")
 
   if ! [ -z "$wd" ] &&
@@ -319,10 +368,39 @@ elif [ "$1" = "dir" ] ; then
   else
     "$@"
   fi
+
+elif [ "$1" = "compose" ] ; then
+  shift 1
+  wd=.
+  
+  if echo "$@" | grep -qE '\-f [^ ]+' ; then
+    yamlcli=$(echo "$@" | grep -oE '\-f [^ ]+' | grep -oE '[^ ]+$')
+  fi
+
+  if [ -f "$yamlcli" ] ; then
+    yamlf=$yamlcli
+    wd=$(dirname "$yamlf")
+  elif [ -f compose.yaml ] ; then
+      yamlf=compose.yaml
+  elif [ -f compose.yml ] ; then
+      yamlf=compose.yml
+  elif [ -f docker-compose.yaml ] ; then
+      yamlf=docker-compose.yaml
+  elif [ -f docker-compose.yml ] ; then
+      yamlf=docker-compose.yml
+  else
+    echo "Compose yaml not found!"
+    exit 127
+  fi
+
+  echo Project folder: $wd 1>&2
+  echo Compose yaml: $yamlf 1>&2
+
+  exec node "$sd"/lib/compose.mjs "$yamlf" "$@"
   
 elif [ "$1" = "search" ] ; then
 
-  sh "$shr" xdg-open "https://hub.docker.com/search?q=$2"  
+  xdg-open "https://hub.docker.com/search?q=$2"  
   
 else
   if [ "$1" = "rm" ] ; then
@@ -338,6 +416,7 @@ else
   echo -e "\033[33m **Additional functions by wrapper:** \033[0m"
   echo "  udocker run --name=myap alpine"
   echo "  udocker run --rm node"
+  echo "  udocker compose"
   echo "  udocker search bun"
   echo "  udocker dir ls -l"
   echo "  udocker dir sh"
