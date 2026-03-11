@@ -47,6 +47,7 @@ if [ "$1" = "run" ] ; then
 
   entrypoint_mode="meta"
   entrypoint_value=""
+  PROOT_EXTRA_ENV=env
 
   while printf "%s" "$1" | grep -q '^-' 
   do
@@ -96,6 +97,12 @@ if [ "$1" = "run" ] ; then
      else
        export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --bind=$realb"
      fi
+    elif [ "$1" = "-e" ] ||
+         [ "$1" = "--env" ] ; then
+      shift 1
+
+      PROOT_EXTRA_ENV="$PROOT_EXTRA_ENV $1"
+     
     elif [ "$1" = "--rm" ] ; then
       JS_UDOCKER_REMOVE=1
     elif [ "$1" = "-p" ] ; then
@@ -147,10 +154,11 @@ if [ "$1" = "run" ] ; then
     ensure_non_primary_user
 
     shift 1
-    if [ -z "$1" ] ; then
+    if [ -z "$1" ] && 
+       [ "$PROOT_EXTRA_ENV" = "env" ] ; then
       exec sh "$script_runproot" "$rootfs"
     else
-      exec sh "$script_runprootc" "$rootfs" "$@"
+      exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
     fi
     
   fi # end if has proot/$1 and yes
@@ -307,7 +315,8 @@ remove_container() {
 }
 
 
-  if [ -z "$args_list" ] ; then
+  if [ -z "$args_list" ] &&
+     [ "$PROOT_EXTRA_ENV" = "env" ] ; then
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
       exec sh "$script_runproot" "$rootfs"
     else
@@ -326,9 +335,9 @@ $args_list
 EOF
 
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
-      exec sh "$script_runprootc" "$rootfs" "$@"
+      exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
     else
-      sh "$script_runprootc" "$rootfs" "$@"
+      sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
 
       status=$?
       remove_container

@@ -1,10 +1,11 @@
 # js-udocker / udocker.js
 
 ## News
-- 2026/03/11 Added udocker compose
+- 2026/03/11 Added udocker compose [--force-recreate]
   * experimental for now, only supports simple files
-- udocker run / build /compose by udocker_wrapper.sh
+- udocker run / compose by udocker_wrapper.sh
 - Termux install/uninstall script
+- multi-stage Dockerfile for udocker build
 - .
 - 2026/03/05 Added udocker build 
 - specifically for openclaw/Dockerfile
