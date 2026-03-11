@@ -39,8 +39,8 @@ bun udocker.js rmi <repo/image:tag>
 bun udocker.js rename <old-name> <new-name>
 bun udocker.js images
 bun udocker.js help
+bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
-sh udocker_wrapper.sh build -t <container_name> [-y | -i] [-f file] .
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 
 ```
@@ -98,8 +98,8 @@ bun udocker.js rmi <repo/image:tag>
 bun udocker.js rename <old-name> <new-name>
 bun udocker.js images
 bun udocker.js help
+bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
-sh udocker_wrapper.sh build -t <container_name> [-y | -i] [-f file] .
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 ```
 
