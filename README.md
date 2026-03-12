@@ -1,13 +1,19 @@
 # js-udocker / udocker.js
 
 ## News
-- 2026/03/11 Added udocker compose [--force-recreate]
+### 2026/03/13
+- Added udocker compose [--dry] [--build-only]
+  * now supports .env loading
+  * I've successfully ran cal.com with some patches
+    + Explanations in calcom_tutorial.md
+### 2026/03/11 
+- Added udocker compose [--force-recreate]
   * experimental for now, only supports simple files
 - udocker run / compose by udocker_wrapper.sh
 - Termux install/uninstall script
 - multi-stage Dockerfile for udocker build
-- .
-- 2026/03/05 Added udocker build 
+### 2026/03/05 
+- Added udocker build 
 - specifically for openclaw/Dockerfile
 
 ## 中文
