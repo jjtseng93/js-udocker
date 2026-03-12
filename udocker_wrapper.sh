@@ -412,11 +412,20 @@ elif [ "$1" = "search" ] ; then
   xdg-open "https://hub.docker.com/search?q=$2"  
   
 else
-  if [ "$1" = "rm" ] ; then
-    chmod -R 777 "$udroot/$2/"
-  fi
-  
+ if [ "$1" = "rm" ] ; then
+   #chmod -R 777 "$udroot/$2/"
+   shift 1
+
+   for dir in "$@"; do
+     echo "chmod -R 777 $dir/"
+     chmod -R 777 "$udroot/$dir/"
+     udocker rm "$dir"
+   done
+
+   exit
+ else
   udocker "$@"
+ fi
 
  if [ "$1" = "help" ] ||
      [ "$1" = "--help" ] ||

@@ -35,7 +35,7 @@ bun udocker.js inspect myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
 bun udocker.js ps
-bun udocker.js rm <container-id|name>
+bun udocker.js rm <container-id|name> [name2] [name3]
 bun udocker.js rmi <repo/image:tag>
 bun udocker.js rename <old-name> <new-name>
 bun udocker.js images
@@ -43,7 +43,8 @@ bun udocker.js help
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
-
+sh udocker_wrapper.sh search <keyword>
+sh udocker_wrapper.sh dir <shell_cmd>
 ```
 
 ### 指令說明
@@ -94,7 +95,7 @@ bun udocker.js inspect myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
 bun udocker.js ps
-bun udocker.js rm <container-id|name>
+bun udocker.js rm <container-id|name> [name2] [name3]
 bun udocker.js rmi <repo/image:tag>
 bun udocker.js rename <old-name> <new-name>
 bun udocker.js images
@@ -102,6 +103,8 @@ bun udocker.js help
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
+sh udocker_wrapper.sh search <keyword>
+sh udocker_wrapper.sh dir <shell_cmd>
 ```
 
 ### Commands
