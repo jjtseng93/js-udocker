@@ -13,7 +13,9 @@ app.get('/', function(req, res) {
         if (isNaN(numVisitsToDisplay)) {
             numVisitsToDisplay = 1;
         }
-       res.send(os.hostname() +': Number of visits is: ' + numVisitsToDisplay);
+       res.send(os.hostname() +': Number of visits is: ' + numVisitsToDisplay+"<br>"+
+         "This reply is delivered by:"+process.env.SERVER_ID
+       );
         numVisits++;
         redisClient.set('numVisits', numVisits);
     });
