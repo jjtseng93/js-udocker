@@ -338,7 +338,7 @@ proot_create_container() {
      
     echo "" 1>&2
     echo "Running $container_name with cmdline:" 1>&2
-    echo -e "\033[33m  sh -l \033[0m" 1>&2
+    echo -e "\033[33m  /bin/sh -l \033[0m" 1>&2
     echo "" 1>&2
 
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then

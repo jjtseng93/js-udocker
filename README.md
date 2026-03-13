@@ -6,6 +6,7 @@
   * now supports .env loading
   * I've successfully ran cal.com with some patches
     + Explanations in calcom_tutorial.md
+- Added inspect -c 
 ### 2026/03/11 
 - Added udocker compose [--force-recreate]
   * experimental for now, only supports simple files
@@ -37,7 +38,7 @@ bun udocker.js import rootfs.tar myimage:latest
 bun udocker.js export -o rootfs.tar <container-id|name>
 bun udocker.js save -o image.tar myimage:latest
 bun udocker.js load -i image.tar
-bun udocker.js inspect myimage:latest
+bun udocker.js inspect [-c|-p] myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
 bun udocker.js ps
@@ -63,7 +64,8 @@ sh udocker_wrapper.sh dir <shell_cmd>
 - `load -i <exported-image>`：載入 docker save 檔案
 - `load`：從 stdin 載入 docker save 檔案
 - `save -o <imagefile> <repo/image:tag>`：輸出 docker save 檔案
-- `inspect -p <repo/image:tag|container>`：顯示 metadata 或 container ROOT 路徑
+- `inspect [-p] <repo/image:tag|container>`：顯示 metadata 或 container ROOT 路徑
+- `inspect -c <repo/image:tag|container>`：顯示 metadata 的config部分
 - `verify <repo/image:tag>`：驗證 image
 - `manifest inspect <repo/image:tag>`：顯示 manifest
 - `create [--name=NAME] <repo/image:tag>`：由 image 建立 container
@@ -97,7 +99,7 @@ bun udocker.js import rootfs.tar myimage:latest
 bun udocker.js export -o rootfs.tar <container-id|name>
 bun udocker.js save -o image.tar myimage:latest
 bun udocker.js load -i image.tar
-bun udocker.js inspect myimage:latest
+bun udocker.js inspect [-c|-p] myimage:latest
 bun udocker.js verify myimage:latest
 bun udocker.js manifest inspect myimage:latest
 bun udocker.js ps
@@ -123,7 +125,8 @@ sh udocker_wrapper.sh dir <shell_cmd>
 - `load -i <exported-image>`: load image from file (docker save)
 - `load`: load image from stdin (docker save)
 - `save -o <imagefile> <repo/image:tag>`: save image with layers to file
-- `inspect -p <repo/image:tag|container>`: print metadata or container ROOT path
+- `inspect [-p] <repo/image:tag|container>`: print metadata or container ROOT path
+- `inspect [-c] <repo/image:tag|container>`: print metadata's config part
 - `verify <repo/image:tag>`: verify image
 - `manifest inspect <repo/image:tag>`: print manifest metadata
 - `create [--name=NAME] <repo/image:tag>`: create a container from an image
