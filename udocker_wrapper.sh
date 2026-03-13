@@ -454,7 +454,7 @@ else
    exit
  else
   udocker "$@"
-  exit $?
+  ustatus=$?
  fi
 
  if [ "$1" = "help" ] ||
@@ -474,4 +474,6 @@ else
   echo "See js-udocker/README.md for more help"
  fi
 
+ exit $ustatus
 fi
+
