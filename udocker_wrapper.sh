@@ -41,6 +41,13 @@ ensure_non_primary_user() {
 }
 
 
+remove_container() {
+  echo "Removing container $cid..." 1>&2
+  chmod -R 777 "$udroot/$cid/"
+  udocker rm "$cid"
+}
+
+
 if [ "$1" = "run" ] ; then
   #export LD_PRELOAD= 
   shift 1
@@ -140,15 +147,21 @@ if [ "$1" = "run" ] ; then
   if ! [ -z "$1" ] &&
      [ -d "$PKG_RDIR/proot/$1" ] ; then
     hasproot=1
-    echo "Do you want to launch proot/$1 ?"
-    printf "(Y/n)"
-    read reply
+
+    if [ -t 0 ] ; then
+      echo "Do you want to launch proot/$1 ?" 1>&2
+      printf "(Y/n)" 1>&2
+      read reply
+    else
+      reply=n
+    fi
   fi
 
   if ! [ -z "$hasproot" ] &&
      ! echo $reply | grep -qi n ; then
 
     rootfs="$PKG_RDIR/proot/$1"
+    container_name="proot/$1"
 
     ensure_dns
     ensure_non_primary_user
@@ -156,8 +169,17 @@ if [ "$1" = "run" ] ; then
     shift 1
     if [ -z "$1" ] && 
        [ "$PROOT_EXTRA_ENV" = "env" ] ; then
+      echo "" 1>&2
+      echo "Running $container_name with cmdline:" 1>&2
+      echo -e "\033[33m  /bin/sh -l \033[0m" 1>&2
+      echo "" 1>&2
       exec sh "$script_runproot" "$rootfs"
     else
+      echo "" 1>&2
+      echo "Running $container_name with cmdline:" 1>&2
+      echo -e "\033[33m  $@ \033[0m" 1>&2
+      echo "" 1>&2
+
       exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
     fi
     
@@ -206,16 +228,17 @@ proot_create_container() {
   
   if ! ls "$udroot/$cid/ROOT/usr/bin/env" 1>&2 ||
      ! ls "$udroot/$cid/ROOT/bin/sh" 1>&2 ; then
-    echo "$udroot/$cid/ROOT/usr/bin/env" && exit
+
     if [ -z "$JS_UDOCKER_FORCE_PROOT" ] ; then
     
       echo "*** Failed to create from $distro ***" 1>&2
 
-      udocker rm "$cid"
+      remove_container
       
       proot_create_container
       
     fi
+    
   fi
   
 
@@ -224,6 +247,7 @@ proot_create_container() {
 
 
   rootfs="$udroot/$cid"/ROOT
+  container_name=$cid
 
   ensure_dns
   ensure_non_primary_user
@@ -308,16 +332,17 @@ proot_create_container() {
   fi
 
 
-remove_container() {
-  echo "Removing container..." 1>&2
-  chmod -R 777 "$udroot/$cid/"
-  udocker rm "$cid"
-}
-
 
   if [ -z "$args_list" ] &&
      [ "$PROOT_EXTRA_ENV" = "env" ] ; then
+     
+    echo "" 1>&2
+    echo "Running $container_name with cmdline:" 1>&2
+    echo -e "\033[33m  sh -l \033[0m" 1>&2
+    echo "" 1>&2
+
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
+
       exec sh "$script_runproot" "$rootfs"
     else
       sh "$script_runproot" "$rootfs"
@@ -333,6 +358,11 @@ remove_container() {
     done <<EOF
 $args_list
 EOF
+
+    echo "" 1>&2
+    echo "Running $container_name with cmdline:" 1>&2
+    echo -e "\033[33m  $@ \033[0m" 1>&2
+    echo "" 1>&2
 
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
       exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
@@ -417,9 +447,8 @@ else
    shift 1
 
    for dir in "$@"; do
-     echo "chmod -R 777 $dir/"
-     chmod -R 777 "$udroot/$dir/"
-     udocker rm "$dir"
+     cid=$dir
+     remove_container
    done
 
    exit
@@ -434,11 +463,14 @@ else
   echo -e "\033[33m **Additional functions by wrapper:** \033[0m"
   echo "  udocker run --name=myap alpine"
   echo "  udocker run --rm node"
-  echo "  udocker compose"
+  echo "  udocker compose [-y|-i] [--dry|--build-only]"
+  echo "  udocker compose [--force-recreate]"
   echo "  udocker search bun"
   echo "  udocker dir ls -l"
   echo "  udocker dir sh"
   echo "  udocker dir <cmd>"
+  echo ""
+  echo "See js-udocker/README.md for more help"
  fi
 
 fi

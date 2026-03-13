@@ -20,7 +20,7 @@ function usage() {
   Msg.out("  udocker load -i <exported-image>");
   Msg.out("  udocker load");
   Msg.out("  udocker save -o <imagefile> <repo/image:tag>");
-  Msg.out("  udocker inspect -p <repo/image:tag|container>");
+  Msg.out("  udocker inspect [-p|-c] <repo/image:tag|container>");
   Msg.out("  udocker verify <repo/image:tag>");
   Msg.out("  udocker manifest inspect <repo/image:tag>");
   Msg.out("  udocker ps");
@@ -427,6 +427,7 @@ async function main() {
   if (cmd === "inspect") {
     const target = positional[0];
     const printDir = Boolean(opts.p);
+    
     if (!target) {
       Msg.err("Error: must specify container id or image:tag");
       process.exitCode = 1;
@@ -442,7 +443,25 @@ async function main() {
       }
       const jsonPath = path.join(containerDir, "container.json");
       if (fs.existsSync(jsonPath)) {
-        Msg.out(fs.readFileSync(jsonPath, "utf8"));
+        let jsonct=(fs.readFileSync(jsonPath, "utf8"));
+        let jsonobj = {} ;
+
+        try{
+          jsonobj=JSON.parse(jsonct);
+        }catch(e){ jsonobj={}; }
+
+        if(jsonobj.config)
+        {
+          if(opts.c)
+            console.log(jsonobj.config);
+          else
+            console.log(jsonobj);
+        }
+        else
+        {
+          Msg.Out(jsonct);
+        }
+        
         process.exitCode = 0;
         return;
       }
