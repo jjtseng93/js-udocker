@@ -272,7 +272,7 @@ async function main() {
       }
       process.chdir(oldCwd);
     }
-    process.exitCode = 0;
+    process.exitCode = process.exitCode || 0;
     return;
   }
 

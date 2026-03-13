@@ -454,6 +454,7 @@ else
    exit
  else
   udocker "$@"
+  exit $?
  fi
 
  if [ "$1" = "help" ] ||
