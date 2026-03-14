@@ -87,7 +87,7 @@ if [ "$1" = "run" ] ; then
         entrypoint_mode="clear"
       fi
     elif [ "$1" = "--entrypoint" ] ; then
-      if [ -n "$2" ] && ! printf "%s" "$2" | grep -q '^-' ; then
+      if [ -n "$2" ] && [ "${2#-}" = "$2" ] ; then
         entrypoint_mode="set"
         entrypoint_value="$2"
         shift 1
