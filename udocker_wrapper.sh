@@ -20,6 +20,24 @@ udroot="$HOME"/.udocker/containers
 script_runproot=$sd/scripts/srpr
 script_runprootc=$sd/scripts/srprc
 
+append_proot_extra_bind() {
+  if [ -z "$PROOT_EXTRA_BIND" ] ; then
+    PROOT_EXTRA_BIND=$1
+  else
+    PROOT_EXTRA_BIND=$(printf "%s\n%s" "$PROOT_EXTRA_BIND" "$1")
+  fi
+  export PROOT_EXTRA_BIND
+}
+
+append_proot_extra_env() {
+  if [ -z "$PROOT_EXTRA_ENV" ] ; then
+    PROOT_EXTRA_ENV=$1
+  else
+    PROOT_EXTRA_ENV=$(printf "%s\n%s" "$PROOT_EXTRA_ENV" "$1")
+  fi
+  export PROOT_EXTRA_ENV
+}
+
 
 ensure_dns() {
 
@@ -54,7 +72,8 @@ if [ "$1" = "run" ] ; then
 
   entrypoint_mode="meta"
   entrypoint_value=""
-  PROOT_EXTRA_ENV=env
+  PROOT_EXTRA_ENV=
+  export PROOT_EXTRA_ENV
 
   while printf "%s" "$1" | grep -q '^-' 
   do
@@ -76,11 +95,7 @@ if [ "$1" = "run" ] ; then
         entrypoint_mode="clear"
       fi
     elif printf "%s" "$1" | grep -q '\--bind=' ; then
-     if [ -z "$PROOT_EXTRA_BIND" ] ; then
-       export PROOT_EXTRA_BIND="$1"
-     else
-       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND $1"
-     fi
+     append_proot_extra_bind "$1"
     elif [ "$1" = "-v" ] ||
          [ "$1" = "-b" ] ||
          [ "$1" = "--volume" ] ; then
@@ -99,16 +114,12 @@ if [ "$1" = "run" ] ; then
        realb=$1
      fi
      
-     if [ -z "$PROOT_EXTRA_BIND" ] ; then
-       export PROOT_EXTRA_BIND="--bind=$realb"
-     else
-       export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --bind=$realb"
-     fi
+     append_proot_extra_bind "--bind=$realb"
     elif [ "$1" = "-e" ] ||
          [ "$1" = "--env" ] ; then
       shift 1
 
-      PROOT_EXTRA_ENV="$PROOT_EXTRA_ENV $1"
+      append_proot_extra_env "$1"
      
     elif [ "$1" = "--rm" ] ; then
       JS_UDOCKER_REMOVE=1
@@ -167,8 +178,7 @@ if [ "$1" = "run" ] ; then
     ensure_non_primary_user
 
     shift 1
-    if [ -z "$1" ] && 
-       [ "$PROOT_EXTRA_ENV" = "env" ] ; then
+    if [ -z "$1" ] ; then
       echo "" 1>&2
       echo "Running $container_name with cmdline:" 1>&2
       echo -e "\033[33m  /bin/sh -l \033[0m" 1>&2
@@ -180,7 +190,7 @@ if [ "$1" = "run" ] ; then
       echo -e "\033[33m  $@ \033[0m" 1>&2
       echo "" 1>&2
 
-      exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
+      exec sh "$script_runprootc" "$rootfs" "$@"
     fi
     
   fi # end if has proot/$1 and yes
@@ -324,17 +334,10 @@ proot_create_container() {
 
   if ! [ -z "$wd" ] &&
      [ -d "$rwd" ] ; then
-    if [ -z "PROOT_EXTRA_BIND" ] ; then
-      export PROOT_EXTRA_BIND="--cwd=$wd"
-    else
-      export PROOT_EXTRA_BIND="$PROOT_EXTRA_BIND --cwd=$wd"
-    fi
+    append_proot_extra_bind "--cwd=$wd"
   fi
 
-
-
-  if [ -z "$args_list" ] &&
-     [ "$PROOT_EXTRA_ENV" = "env" ] ; then
+  if [ -z "$args_list" ] ; then
      
     echo "" 1>&2
     echo "Running $container_name with cmdline:" 1>&2
@@ -365,9 +368,9 @@ EOF
     echo "" 1>&2
 
     if [ -z "$JS_UDOCKER_REMOVE" ] ; then
-      exec sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
+      exec sh "$script_runprootc" "$rootfs" "$@"
     else
-      sh "$script_runprootc" "$rootfs" $PROOT_EXTRA_ENV "$@"
+      sh "$script_runprootc" "$rootfs" "$@"
 
       status=$?
       remove_container
@@ -476,4 +479,3 @@ else
 
  exit $ustatus
 fi
-

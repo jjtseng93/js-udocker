@@ -48,13 +48,48 @@ else
 fi
 
 
-if [ -z "$PROOT_EXTRA_BIND" ] ; then
-extbind="--bind=/odm"
-else
-extbind="--bind=/odm $PROOT_EXTRA_BIND"
+shift 1
+cmd_args=
+for arg in "$@"
+do
+  if [ -z "$cmd_args" ] ; then
+    cmd_args=$arg
+  else
+    cmd_args=$(printf "%s\n%s" "$cmd_args" "$arg")
+  fi
+done
+
+set -- "$pr1" "$shr" "$pr2" --rootfs="$rootfs" -p -l -L --sysvipc --kill-on-exit --cwd=/root --change-id=0:0 --bind=/linkerconfig/com.android.art/ld.config.txt --bind=/linkerconfig/ld.config.txt --bind=/vendor --bind=/system_ext --bind=/system --bind=/product --bind=/odm
+
+if ! [ -z "$PROOT_EXTRA_BIND" ] ; then
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$PROOT_EXTRA_BIND
+EOF
 fi
 
-shift 1
+set -- "$@" --bind=/apex --bind=/data/misc/apexdata/com.android.art/dalvik-cache --bind=/data/dalvik-cache --bind=/data/app --bind="$rootfs"/tmp:/dev/shm --bind=/proc --bind=/proc/self/fd/2:/dev/stderr --bind=/proc/self/fd/1:/dev/stdout --bind=/proc/self/fd/0:/dev/stdin --bind=/sys --bind=/proc/self/fd:/dev/fd --bind=/dev/urandom:/dev/random --bind=/dev --kernel-release=5.1.107-70-PRoot /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games ANDROID_ART_ROOT=/apex/com.android.art ANDROID_DATA=/data ANDROID_I18N_ROOT=/apex/com.android.i18n ANDROID_ROOT=/system ANDROID_TZDATA_ROOT=/apex/com.android.tzdata EXTERNAL_STORAGE=/sdcard SHELL="$defaultshell" LANG="$guestlang" LANGUAGE="$guestlanguage" LC_ALL="$guestlang" MOZ_FAKE_NO_SANDBOX=1 DISPLAY=:0 PULSE_SERVER=127.0.0.1 TERM=xterm-256color TMPDIR=/tmp COLORTERM=truecolor HOME=/root USER=root
+
+if ! [ -z "$PROOT_EXTRA_ENV" ] ; then
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$PROOT_EXTRA_ENV
+EOF
+fi
+
+if ! [ -z "$cmd_args" ] ; then
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$cmd_args
+EOF
+fi
+
 # the 2 -L and -l are patches
 # -p for protecting low ports
-"$pr1" "$shr" "$pr2" --rootfs="$rootfs" -p -l -L --sysvipc --kill-on-exit --cwd=/root --change-id=0:0 --bind=/linkerconfig/com.android.art/ld.config.txt --bind=/linkerconfig/ld.config.txt --bind=/vendor --bind=/system_ext --bind=/system --bind=/product $extbind --bind=/apex --bind=/data/misc/apexdata/com.android.art/dalvik-cache --bind=/data/dalvik-cache --bind=/data/app --bind="$rootfs"/tmp:/dev/shm --bind=/proc --bind=/proc/self/fd/2:/dev/stderr --bind=/proc/self/fd/1:/dev/stdout --bind=/proc/self/fd/0:/dev/stdin --bind=/sys --bind=/proc/self/fd:/dev/fd --bind=/dev/urandom:/dev/random --bind=/dev --kernel-release=5.1.107-70-PRoot /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games ANDROID_ART_ROOT=/apex/com.android.art ANDROID_DATA=/data ANDROID_I18N_ROOT=/apex/com.android.i18n ANDROID_ROOT=/system ANDROID_TZDATA_ROOT=/apex/com.android.tzdata EXTERNAL_STORAGE=/sdcard SHELL="$defaultshell" LANG="$guestlang" LANGUAGE="$guestlanguage" LC_ALL="$guestlang" MOZ_FAKE_NO_SANDBOX=1 DISPLAY=:0 PULSE_SERVER=127.0.0.1 TERM=xterm-256color TMPDIR=/tmp COLORTERM=truecolor HOME=/root USER=root "$@"
+exec "$@"
