@@ -13,6 +13,7 @@ function usage() {
   Msg.out("  udocker pull [--platform=os/arch[/variant]] [--registry=URL] [--pull=missing|always|never] [-q|--quiet] <repo/image:tag>");
   Msg.out("  udocker build -t <container_name> [-f Dockerfile] [--build-arg KEY=VALUE] [-y|-n] [context]");
   Msg.out("  udocker create [--name=NAME] [--force] <repo/image:tag>");
+  Msg.out("  udocker run [-e key=val] [-p port:port] [-v volume:/path] [-w workdir] [--rm] [--name=NAME] [--entrypoint <program>/json_array_dataurl ] [--isolated] <container/image>");
   Msg.out("  udocker import <tar> <repo/image:tag>");
   Msg.out("  udocker import - <repo/image:tag>");
   Msg.out("  udocker export -o <tar> <container>");
@@ -44,6 +45,8 @@ function usage() {
   Msg.out("  manifest  Print manifest metadata");
   Msg.out("  create    Create a container from a pulled image");
   Msg.out("            Options: --name, --force");
+  Msg.out("  run       Run a container through the proot runtime");
+  Msg.out("            Options: -p, -v/-b, -e/--env, -w, --rm, --name, --entrypoint, --isolated, --proot");
   Msg.out("  images    List local images");
   Msg.out("            Options: -l, -p, --all, --no-trunc");
   Msg.out("  ps        List local containers");
@@ -152,6 +155,12 @@ async function main() {
   if (cmd === "help" || cmd === "--help" || cmd === "-h") {
     usage();
     process.exitCode = 0;
+    return;
+  }
+  if (cmd === "run") {
+    const modPath = pathToFileURL(path.join(__dirname, "lib", "run.mjs")).href;
+    const runMod = await import(modPath);
+    process.exitCode = await runMod.runMain(argv.slice(1));
     return;
   }
   const { opts, positional } = parseArgs(argv.slice(1));

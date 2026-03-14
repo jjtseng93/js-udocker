@@ -52,15 +52,33 @@ fi
 
 
 shift 1
-cmd_args=
-for arg in "$@"
-do
-  if [ -z "$cmd_args" ] ; then
-    cmd_args=$arg
-  else
-    cmd_args=$(printf "%s\n%s" "$cmd_args" "$arg")
-  fi
-done
+
+
+if ! [ -z "$PROOT_CMD_ARGS" ] ; then
+  cmd_args=$PROOT_CMD_ARGS
+elif [ -z "$PROOT_ESCAPE_NEWLINE" ] ; then
+  cmd_args=
+  for arg in "$@"
+  do
+    if [ -z "$cmd_args" ] ; then
+      cmd_args=$arg
+    else
+      cmd_args=$(printf "%s\n%s" "$cmd_args" "$arg")
+    fi
+  done
+else
+  cmd_args=
+  for arg in "$@"
+  do
+    enc=$(printf "%s" "$arg" | node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(encodeURIComponent(s)));')
+    if [ -z "$cmd_args" ] ; then
+      cmd_args=$enc
+    else
+      cmd_args=$(printf "%s\n%s" "$cmd_args" "$enc")
+    fi
+  done
+fi
+
 
 set -- "$pr1" "$shr" "$pr2" --rootfs="$rootfs" -p -l -L --sysvipc --kill-on-exit --cwd=/root --change-id=0:0 --bind="$PKG_PDIR" --bind="$PKG_RDIR" --bind="$atmp":/atmp --bind="$bind_sh" --bind="$bind_toybox" --bind=/linkerconfig/com.android.art/ld.config.txt --bind=/linkerconfig/ld.config.txt --bind=/vendor --bind=/system_ext --bind=/system --bind=/product --bind=/odm
 
@@ -84,14 +102,32 @@ $PROOT_EXTRA_ENV
 EOF
 fi
 
+
 if ! [ -z "$cmd_args" ] ; then
+ if [ -z "$PROOT_ESCAPE_NEWLINE" ] ; then
+ 
   while IFS= read -r line
   do
     [ -z "$line" ] || set -- "$@" "$line"
   done <<EOF
 $cmd_args
 EOF
+
+ else
+ 
+  while IFS= read -r line
+  do
+    if ! [ -z "$line" ] ; then
+      dec=$(printf "%s" "$line" | node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(decodeURIComponent(s.trim())));')
+      set -- "$@" "$dec"
+    fi
+  done <<EOF
+$cmd_args
+EOF
+
+ fi
 fi
+
 
 # the 2 -L and -l are patches
 # -p for protecting low ports

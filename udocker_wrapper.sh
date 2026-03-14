@@ -11,8 +11,18 @@ else
   alias proot-udocker='sh "$shr" proot -l -S / --bind="$PKG_RDIR/bin/mksh":/system/bin/sh --bind="$PKG_RDIR/bin/toybox":/system/bin/toybox /bin/sh "$shr" node "$sd"/udocker.js'
 fi
 
+export TMPK_QUIET=1
 
 udroot="$HOME"/.udocker/containers
+
+if [ "$1" = "run" ] ; then
+  shift 1
+  if [ -d /data/data/com.termux ] ; then
+    exec node "$sd"/udocker.js run "$@"
+  else
+    exec sh "$shr" node "$sd"/udocker.js run "$@"
+  fi
+fi
 
 
 
@@ -39,6 +49,7 @@ append_proot_extra_env() {
 }
 
 
+
 ensure_dns() {
 
   if ! [ -s "$rootfs"/etc/resolv.conf ] ; then
@@ -54,7 +65,7 @@ ensure_dns() {
 ensure_non_primary_user() {
   if pwd | grep -E '/data/user/[^0][0-9]*/'>/dev/null ; then
     echo "Non-primary user, disabling apt sandbox" 1>&2
-    sh "$PKG_RDIR"/proot/srprc "$rootfs" sh -c 'which apt && echo '\''APT::Sandbox::User "root";'\'' > /etc/apt/apt.conf.d/99no-sandbox'
+    sh "$sd"/scripts/srprc "$rootfs" sh -c 'which apt && echo '\''APT::Sandbox::User "root";'\'' > /etc/apt/apt.conf.d/99no-sandbox'
   fi
 }
 
@@ -280,6 +291,29 @@ proot_create_container() {
       return [];
     }
 
+    function parseEntrypointValue(v) {
+      if (typeof v !== "string") return [];
+      if (v.startsWith("data:application/json,")) {
+        try {
+          const parsed = JSON.parse(
+            decodeURIComponent(v.slice("data:application/json,".length))
+          );
+          return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch {
+          return [];
+        }
+      }
+      if (v.startsWith("@json:")) {
+        try {
+          const parsed = JSON.parse(v.slice(6));
+          return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch {
+          return [];
+        }
+      }
+      return norm(v);
+    }
+
     let entryp = [];
     let cmd = [];
     let cfg = {};
@@ -298,7 +332,7 @@ proot_create_container() {
     }
 
     if (entryMode === "set") {
-      entryp = norm(entryValue);
+      entryp = parseEntrypointValue(entryValue);
     } else if (entryMode === "clear") {
       entryp = [];
     }
@@ -324,7 +358,11 @@ proot_create_container() {
        cfg.WorkingDir);
     }
 
-    process.stdout.write(finalArgs.join("\n"));
+    process.stdout.write(
+      finalArgs
+        .map(v => encodeURIComponent(String(v)) )
+        .join("\n")
+    );
   ' "$udroot/$cid/container.json" "$entrypoint_mode" "$entrypoint_value" "$@")
 
   if [ -z "$wd" ] ; then
@@ -354,13 +392,18 @@ proot_create_container() {
       exit $status
     fi
   else
+
+
     set --
     while IFS= read -r line
     do
-      set -- "$@" "$line"
+      [ -z "$line" ] && continue
+      decoded=$(printf "%s" "$line" | node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(decodeURIComponent(s.trim())));' 2>/dev/null)
+      set -- "$@" "$decoded"
     done <<EOF
 $args_list
 EOF
+
 
     echo "" 1>&2
     echo "Running $container_name with cmdline:" 1>&2
