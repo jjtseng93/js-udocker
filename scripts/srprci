@@ -67,7 +67,8 @@ else
   cmd_args=
   for arg in "$@"
   do
-    enc=$(printf "%s" "$arg" | node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(encodeURIComponent(s)));')
+    enc=$(printf "%s" "$arg" | base64 -w 0)
+    #node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(encodeURIComponent(s)));')
     if [ -z "$cmd_args" ] ; then
       cmd_args=$enc
     else
@@ -115,7 +116,8 @@ EOF
   while IFS= read -r line
   do
     if ! [ -z "$line" ] ; then
-      dec=$(printf "%s" "$line" | node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(decodeURIComponent(s.trim())));')
+      dec=$(printf "%s" "$line" | base64 -d)
+      #node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(decodeURIComponent(s.trim())));')
       set -- "$@" "$dec"
     fi
   done <<EOF
