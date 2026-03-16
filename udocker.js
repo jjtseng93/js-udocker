@@ -24,7 +24,7 @@ function usage() {
   Msg.out("  udocker inspect [-p|-c] <repo/image:tag|container>");
   Msg.out("  udocker verify <repo/image:tag>");
   Msg.out("  udocker manifest inspect <repo/image:tag>");
-  Msg.out("  udocker ps");
+  Msg.out("  udocker ps [regexp]");
   Msg.out("  udocker images [-l] [-p] [--all] [--no-trunc]");
   Msg.out("  udocker rm <container-id|name>");
   Msg.out("  udocker rmi <repo/image:tag>");
@@ -61,7 +61,7 @@ function usage() {
   Msg.out("  udocker build -t my_container -f Dockerfile .");
   Msg.out("  udocker create --name=myap alpine");
   Msg.out("  udocker images -p");
-  Msg.out("  udocker ps");
+  Msg.out("  udocker ps [regexp]");
   Msg.out("  udocker rename myap myapp");
   Msg.out("  udocker rm myapp");
   Msg.out("  udocker rmi alpine:latest");
@@ -555,11 +555,42 @@ async function main() {
   }
 
   if (cmd === "ps") {
-    const list = localrepo.get_containers_list(false);
+    const pattern = positional[0] ? String(positional[0]) : "";
+    let regex = null;
+    if (pattern) {
+      try {
+        regex = new RegExp(pattern);
+      } catch {
+        Msg.err("Error: invalid regexp");
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+    let list = localrepo.get_containers_list(false).map(([id, image, names]) => ({
+      id: String(id || ""),
+      image: String(image || ""),
+      names: String(names || ""),
+    }));
+
+    if (regex) {
+      list = list.filter(({ id, image, names }) => (
+        regex.test(names) || regex.test(image) || regex.test(id)
+      ));
+    }
+
+    list.sort((a, b) => {
+      const nameCmp = a.names.localeCompare(b.names, undefined, { sensitivity: "base" });
+      if (nameCmp !== 0) return nameCmp;
+      const imageCmp = a.image.localeCompare(b.image, undefined, { sensitivity: "base" });
+      if (imageCmp !== 0) return imageCmp;
+      return a.id.localeCompare(b.id, undefined, { sensitivity: "base" });
+    });
+
     const header = ["CONTAINER ID".padEnd(36), "NAMES".padEnd(20), "IMAGE"];
     Msg.out(header.join(" "));
-    for (const [id, image, names] of list) {
-      const row = [String(id).padEnd(36), (names || "-").padEnd(20), image || "-"];
+    for (const { id, image, names } of list) {
+      const row = [(id || "-").padEnd(36), (names || "-").padEnd(20), image || "-"];
       Msg.out(row.join(" "));
     }
     process.exitCode = 0;
