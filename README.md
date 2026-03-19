@@ -1,6 +1,9 @@
 # js-udocker / udocker.js
 
 ## News
+### 2026/03/20
+- Added support for copy from image
+- Multi-stage supports target in compose
 ### 2026/03/13
 - Added udocker compose [--dry] [--build-only]
   * now supports .env loading
