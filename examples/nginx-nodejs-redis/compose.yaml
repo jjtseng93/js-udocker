@@ -1,0 +1,31 @@
+
+services:
+  redis:
+    image: 'redis:8.6.1-alpine'
+    ports:
+      - '6379:6379'
+  web1:
+    restart: on-failure
+    build: ./web
+    hostname: web1
+    environment:
+      - SERVER_ID=web1
+    ports:
+      - '5001:80'
+  web2:
+    restart: on-failure
+    build: ./web
+    hostname: web2
+    environment:
+      - SERVER_ID=web2
+    ports:
+      - '5002:80'
+  nginx:
+    build: ./nginx
+    ports:
+    - '8080:80'
+    depends_on:
+    - web1
+    - web2
+
+

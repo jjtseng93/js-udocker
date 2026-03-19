@@ -1,0 +1,9 @@
+
+::1             ip6-localhost
+127.0.0.1       localhost
+
+127.0.0.1       redis
+127.0.0.1       web1
+127.0.0.1       web2
+127.0.0.1       nginx
+
