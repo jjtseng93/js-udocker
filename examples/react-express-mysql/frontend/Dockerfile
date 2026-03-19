@@ -6,10 +6,11 @@ ENV CI=true
 ENV PORT=3000
 
 WORKDIR /code
-COPY package.json /code/package.json
-COPY package-lock.json /code/package-lock.json
+#COPY package.json /code/package.json
+#COPY package-lock.json /code/package-lock.json
+COPY . .
+
 RUN npm ci
-COPY . /code
 
 CMD [ "npm", "start" ]
 
@@ -32,7 +33,7 @@ EOF
 COPY --from=gloursdocker/docker / /
 CMD [ "npm", "start" ]
 
-FROM nginx:1.29.6-alpine
+FROM nginx:1.29.6-alpine as production
 
 COPY --from=builder /code/build /usr/share/nginx/html
 
