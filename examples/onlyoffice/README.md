@@ -3,6 +3,8 @@
 - ONLYOFFICE Document Server (AGPL v3).
 - Base version:
   * ONLYOFFICE Document Server 9.3.1.2
+- No modifications are made to the original ONLYOFFICE source code.
+- All changes are applied via external configuration and bind-mounted override files.
   
 ## Modifications:
 - The following files override upstream files
