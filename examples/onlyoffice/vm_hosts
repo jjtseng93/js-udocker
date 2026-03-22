@@ -1,0 +1,7 @@
+
+::1             ip6-localhost
+127.0.0.1       localhost
+
+127.0.0.1       db
+127.0.0.1       docserver
+

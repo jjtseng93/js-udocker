@@ -1,0 +1,37 @@
+name: oods
+secrets:
+  db-password: ./dbpw.txt
+services:
+  db:
+    image: mariadb:10.6.4-focal
+    command: '--default-authentication-plugin=mysql_native_password'
+    restart: always
+    secrets:
+      - db-password
+    #volumes:
+      # - db-data:/var/lib/mysql
+    networks:
+      - private
+    environment:
+      - MARIADB_DATABASE=onlyoffice
+      - MARIADB_USER=onlyoffice
+      - MARIADB_PASSWORD=onlyoffice
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db-password
+  docserver:
+    image: onlyoffice/documentserver:9.3.1.2
+    environment:
+      - DB_TYPE=mariadb
+      - DB_HOST=127.0.0.1
+      - JS_UDOCKER_FORCE_PROOT=1
+    volumes:
+      - ./run-document-server.sh:/app/ds/run-document-server.sh
+      - ./nginx_welcome:/etc/nginx/sites-enabled/default
+      - ./ds.conf.tmpl:/etc/onlyoffice/documentserver/nginx/ds.conf.tmpl
+      - ./ds-adminpanel.conf:/etc/supervisor/conf.d/ds-adminpanel.conf
+      - ./startdse.sh:/root/startdse.sh
+      - onlyoffice-files:/var/lib/onlyoffice/documentserver-example/files
+    ports:
+      - 8081:8081
+      # http://localhost:8080 will be the default nginx welcome page
+      # http://localhost:8081 will be the onlyoffice welcome page
+      #   scroll down & press "go to test example" to create/edit documents
