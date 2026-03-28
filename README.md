@@ -69,7 +69,7 @@ bun udocker.js help
 
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 
-sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
+sh udocker_wrapper.sh run [--proot] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i] 
 [--dry] [--build-only] [--repl] [--json] [--force-recreate]
@@ -149,7 +149,7 @@ bun udocker.js help
 
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 
-sh udocker_wrapper.sh run [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
+sh udocker_wrapper.sh run [--proot] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 [--dry] [--build-only] [--repl] [--json] [--force-recreate]
