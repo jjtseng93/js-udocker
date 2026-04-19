@@ -507,7 +507,7 @@ else
      [ "$1" = "--help" ] ||
      [ "$1" = "-h" ] ||
      [ -z "$1" ]; then
-  echo -e "\033[33m **Additional functions by wrapper:** \033[0m"
+  printf "\033[33m **Additional functions by wrapper:** \n \033[0m"
   echo "  udocker run --name=myap alpine"
   echo "  udocker run --rm node"
   echo "  udocker compose [-y|-i] [--dry|--build-only]"
