@@ -1,0 +1,131 @@
+#!/bin/sh
+
+sd=$(dirname "$(realpath "$0")")
+
+
+if [ -d "$1" ] ; then
+  rootfs="$1"
+elif [ -d "$sd/alpine" ] ; then
+  rootfs="$sd/alpine"
+elif [ -d "$sd/debian" ] ; then
+  rootfs="$sd/debian"
+else
+  echo "No rootfs specified or found"
+  exit 1
+fi
+
+
+if [ -z "$PKG_RDIR" ] ; then
+  PKG_RDIR=/tmp
+  linktarget=$HOME
+else
+  linktarget=$PKG_RDIR
+fi
+
+if [ -z "$PKG_PDIR" ] ; then
+  PKG_PDIR=/tmp
+  shr=$sd/env.sh
+fi
+
+
+[ -z "$TMPDIR" ] && TMPDIR=/tmp
+
+
+rmdir "$rootfs"/android 2>/dev/null
+ln -sfT "$linktarget" "$rootfs"/android
+
+
+[ -z "$defaultshell" ] &&  defaultshell="/bin/sh"
+
+
+export PROOT_TMP_DIR=$TMPDIR
+export LD_PRELOAD="" 
+
+
+
+shift 1
+
+
+if ! [ -z "$PROOT_CMD_ARGS" ] ; then
+  cmd_args=$PROOT_CMD_ARGS
+elif [ -z "$PROOT_ESCAPE_NEWLINE" ] ; then
+  cmd_args=
+  for arg in "$@"
+  do
+    if [ -z "$cmd_args" ] ; then
+      cmd_args=$arg
+    else
+      cmd_args=$(printf "%s\n%s" "$cmd_args" "$arg")
+    fi
+  done
+else
+  cmd_args=
+  for arg in "$@"
+  do
+    enc=$(printf "%s" "$arg" | base64 -w 0)
+    #node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(encodeURIComponent(s)));')
+    if [ -z "$cmd_args" ] ; then
+      cmd_args=$enc
+    else
+      cmd_args=$(printf "%s\n%s" "$cmd_args" "$enc")
+    fi
+  done
+fi
+
+
+# Fix -p portmap in the future
+
+set -- sh "$shr" proot -r "$rootfs" -b /etc/host.conf -b /etc/hosts -b /etc/nsswitch.conf -b /tmp -b /dev -b /sys -b /proc --kill-on-exit --cwd=/root --change-id=0:0 --bind="$PKG_PDIR" --bind="$PKG_RDIR" --bind="$TMPDIR":/atmp
+
+
+if ! [ -z "$PROOT_EXTRA_BIND" ] ; then
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$PROOT_EXTRA_BIND
+EOF
+fi
+
+set -- "$@" --kernel-release=5.1.107-70-PRoot /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games SHELL="$defaultshell" TERM=xterm-256color TMPDIR=/tmp COLORTERM=truecolor HOME=/root USER=root
+
+if ! [ -z "$PROOT_EXTRA_ENV" ] ; then
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$PROOT_EXTRA_ENV
+EOF
+fi
+
+
+if ! [ -z "$cmd_args" ] ; then
+ if [ -z "$PROOT_ESCAPE_NEWLINE" ] ; then
+ 
+  while IFS= read -r line
+  do
+    [ -z "$line" ] || set -- "$@" "$line"
+  done <<EOF
+$cmd_args
+EOF
+
+ else
+ 
+  while IFS= read -r line
+  do
+    if ! [ -z "$line" ] ; then
+      dec=$(printf "%s" "$line" | base64 -d)
+      #node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(decodeURIComponent(s.trim())));')
+      set -- "$@" "$dec"
+    fi
+  done <<EOF
+$cmd_args
+EOF
+
+ fi
+fi
+
+
+# the 2 -L and -l are patches
+# -p for protecting low ports
+exec "$@"

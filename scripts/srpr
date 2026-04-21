@@ -11,13 +11,17 @@ if [ -d /data/data/com.termux ] ; then
   pr2=$(which proot)
   bind_sh=/odm
   bind_toybox=/odm
-else
+elif [ -f /system/bin/linker64 ] ; then
   export PROOT_LOADER=$PKG_PDIR/applib/libproot-loader.so
   pr1=sh
   pr2=proot
   bind_sh="$PKG_RDIR/bin/mksh":/system/bin/sh
   bind_toybox="$PKG_RDIR/bin/toybox":/system/bin/toybox
+
+else
+  exec sh "$sd"/srprc-linux "$1" /bin/sh -l
 fi
+
 
 
 if [ -d "$1" ] ; then
