@@ -39,7 +39,7 @@
 - udocker_wrapper.sh lib/: build.mjs compose.mjs 主要是我寫的
 - .
 - 這邊有我的APP連結，可以在終端機直接使用udocker
-  * https://drive.google.com/file/d/1luk4pY5D7b6FHHhy57mTZ3NcEwFEUvlw/view?usp=drivesdk
+  * https://drive.google.com/drive/folders/18iwbKrAZfA-HoTSP9I5MzGz5xVFMZ4bg
 - 但也能在Termux安裝(較少測試)
   * sh termux_install.sh
 
@@ -119,7 +119,7 @@ sh udocker_wrapper.sh dir <shell_cmd>
 - udocker_wrapper.sh lib/: build.mjs compose.mjs is mainly written by me
 - .
 - Here is the link to my App, with direct access to udocker in the Terminal applet:
-  * https://drive.google.com/file/d/1luk4pY5D7b6FHHhy57mTZ3NcEwFEUvlw/view?usp=drivesdk
+  * https://drive.google.com/drive/folders/18iwbKrAZfA-HoTSP9I5MzGz5xVFMZ4bg
 - You can also install in Termux(less tested)
   * sh termux_install.sh
 
