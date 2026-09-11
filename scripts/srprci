@@ -3,7 +3,20 @@
 sd=$(dirname "$(realpath "$0")")
 
 
-if [ -d /data/data/com.termux ] ; then
+if [ -n "$JS_UDOCKER_BUNPROOT" ] ; then
+  if ! [ -f "$JS_UDOCKER_BUNPROOT" ] ; then
+    echo "Specified bunproot not found:"
+    echo "  $JS_UDOCKER_BUNPROOT"
+    exit 127
+  fi
+  pr1=bun
+  shr='--no-orphans'
+  pr2=$JS_UDOCKER_BUNPROOT
+  PKG_PDIR=$TMPDIR
+  PKG_RDIR=$TMPDIR
+  bind_sh=/odm
+  bind_toybox=/odm
+elif [ -d /data/data/com.termux ] ; then
   shr=/system/bin/linker64
   PKG_PDIR=$HOME
   PKG_RDIR=$PREFIX
