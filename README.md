@@ -69,7 +69,7 @@ bun udocker.js help
 
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 
-sh udocker_wrapper.sh run [--proot] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
+sh udocker_wrapper.sh run [--proot] [--bypass-registry] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i] 
 [--dry] [--build-only] [--repl] [--json] [--force-recreate]
@@ -77,6 +77,8 @@ sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 sh udocker_wrapper.sh search <keyword>
 sh udocker_wrapper.sh dir <shell_cmd>
 ```
+
+`run --bypass-registry` 會略過 registry/pull，直接使用本地已有的 image metadata 與 layers；cache 不完整時建立會失敗。
 
 ### 指令說明
 
@@ -149,7 +151,7 @@ bun udocker.js help
 
 bun udocker.js build -t <container_name> [-y | -i] [-f file] [--build-arg KEY=VAL] .
 
-sh udocker_wrapper.sh run [--proot] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
+sh udocker_wrapper.sh run [--proot] [--bypass-registry] [-p port:port] [-v volume] [-w workdir] [--rm] [--name=<name>] [--entrypoint=<file>] [--isolated] <container/image name>
 
 sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 [--dry] [--build-only] [--repl] [--json] [--force-recreate]
@@ -157,6 +159,8 @@ sh udocker_wrapper.sh compose [-f compose_file] [-y | -i]
 sh udocker_wrapper.sh search <keyword>
 sh udocker_wrapper.sh dir <shell_cmd>
 ```
+
+`run --bypass-registry` skips registry/pull access and uses existing local image metadata and layers; creation fails if the cache is incomplete.
 
 ### Commands
 
